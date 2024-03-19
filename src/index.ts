@@ -4,7 +4,7 @@ import { Operation } from "./operation";
 import { MatchingBlock } from "./matching-block";
 import { ListDiffLines } from "./list-diff-lines";
 
-export class HtmlDiff extends AbstractDiff {
+export default class HtmlDiff extends AbstractDiff {
   protected wordIndices: { [key: string]: number[] } = {};
   protected newIsolatedDiffTags: { [key: number]: string[] } = {};
   protected oldIsolatedDiffTags: { [key: number]: string[] } = {};
@@ -30,6 +30,12 @@ export class HtmlDiff extends AbstractDiff {
 
   public getInsertSpaceInReplace(): boolean {
     return this.config.isInsertSpaceInReplace();
+  }
+
+  public execute(oldText: string, newText: string) {
+    this.oldText = oldText;
+    this.newText = newText;
+    this.build();
   }
 
   public build(): string {

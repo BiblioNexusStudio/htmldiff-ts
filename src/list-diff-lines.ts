@@ -1,4 +1,4 @@
-import { HtmlDiff } from ".";
+import HtmlDiff from ".";
 import { AbstractDiff } from "./abstract-diff";
 import { HtmlDiffConfig } from "./html-diff-config";
 import { LcsService } from "./lcs-service";

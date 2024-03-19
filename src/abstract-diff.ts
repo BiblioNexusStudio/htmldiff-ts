@@ -1,5 +1,5 @@
 import { HtmlDiffConfig } from "./html-diff-config";
-import { StringUtil } from "../util/string-util";
+import { StringUtil } from "./util/string-util";
 
 export abstract class AbstractDiff {
   protected config: HtmlDiffConfig;
@@ -14,12 +14,11 @@ export abstract class AbstractDiff {
     oldText: string,
     newText: string,
     encoding: string = "UTF-8",
-    specialCaseTags: null | string[] = null,
     groupDiffs: boolean | null = null,
   ) {
-    this.stringUtil = new StringUtil(oldText, newText);
+    this.stringUtil = new StringUtil();
 
-    this.setConfig(HtmlDiffConfig.create().setEncoding(encoding));
+    this.config = HtmlDiffConfig.create().setEncoding(encoding);
 
     if (groupDiffs !== null) {
       this.config.setGroupDiffs(groupDiffs);
@@ -57,7 +56,6 @@ export abstract class AbstractDiff {
 
   protected convertHtmlToListOfWords(text: string): string[] {
     const words: string[] = [];
-    const sentencesAndTags: RegExpMatchArray[] = [];
 
     let specialCharacters = "";
 
@@ -81,7 +79,7 @@ export abstract class AbstractDiff {
       sentenceOrHtmlTag =
         this.normalizeWhitespaceInHtmlSentence(sentenceOrHtmlTag);
 
-      const sentenceSplitIntoWords: RegExpMatchArray[] = [];
+      const sentenceSplitIntoWords: string[] = [];
 
       const regex = new RegExp(
         `\\s|[${specialCharacters}]|[a-zA-Z0-9${specialCharacters}\\pL]+[a-zA-Z0-9\\pL]|[^\\s]`,
