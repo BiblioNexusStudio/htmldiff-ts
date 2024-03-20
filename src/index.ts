@@ -32,10 +32,10 @@ export default class HtmlDiff extends AbstractDiff {
     return this.config.isInsertSpaceInReplace();
   }
 
-  public execute(oldText: string, newText: string) {
+  public execute(oldText: string, newText: string): string {
     this.oldText = oldText;
     this.newText = newText;
-    this.build();
+    return this.build();
   }
 
   public build(): string {
@@ -168,9 +168,9 @@ export default class HtmlDiff extends AbstractDiff {
             ),
           }
         : this.config.getIsolatedDiffTags();
-    const pattern = /<(\w+)(\s+[^>]*)?>/i;
 
     for (const key in tagsToMatch) {
+      const pattern = new RegExp(`<${key}(\\s+[^>]*)?>`, "iu");
       if (pattern.test(item)) {
         return key;
       }
@@ -370,7 +370,7 @@ export default class HtmlDiff extends AbstractDiff {
     );
     const matches = text.match(pattern);
     if (matches) {
-      return this.decodeHtmlEntities(matches[2]);
+      return this.htmlspecialcharsDecode(matches[2]);
     }
     return null;
   }
@@ -512,7 +512,7 @@ export default class HtmlDiff extends AbstractDiff {
     let positionInNew = 0;
     const operations: Operation[] = [];
 
-    let matches = this.matchingBlocks();
+    const matches = this.matchingBlocks();
     matches.push(
       new MatchingBlock(this.oldWords.length, this.newWords.length, 0),
     );
@@ -724,5 +724,14 @@ export default class HtmlDiff extends AbstractDiff {
     }
 
     return isWhitespace;
+  }
+
+  private htmlspecialcharsDecode(input: string) {
+    return input
+      .toString()
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&");
   }
 }

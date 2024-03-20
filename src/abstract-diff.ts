@@ -1,7 +1,7 @@
 import { HtmlDiffConfig } from "./html-diff-config";
 import { StringUtil } from "./util/string-util";
 
-export abstract class AbstractDiff {
+export class AbstractDiff {
   protected config: HtmlDiffConfig;
   protected content: string;
   protected oldText: string;
@@ -28,8 +28,6 @@ export abstract class AbstractDiff {
     this.newText = newText;
     this.content = "";
   }
-
-  abstract build(): boolean | string;
 
   getConfig(): HtmlDiffConfig {
     return this.config;
@@ -60,7 +58,7 @@ export abstract class AbstractDiff {
     let specialCharacters = "";
 
     for (const char of this.config.getSpecialCaseChars()) {
-      specialCharacters += "\\" + char;
+      specialCharacters += ([",", "'"].includes(char) ? "" : "\\") + char;
     }
 
     // Normalize no-break-spaces to regular spaces
@@ -82,11 +80,15 @@ export abstract class AbstractDiff {
       const sentenceSplitIntoWords: string[] = [];
 
       const regex = new RegExp(
-        `\\s|[${specialCharacters}]|[a-zA-Z0-9${specialCharacters}\\pL]+[a-zA-Z0-9\\pL]|[^\\s]`,
+        "\\s|[" +
+          specialCharacters +
+          "|[a-zA-Z0-9" +
+          specialCharacters +
+          "\\p{L}]+[a-zA-Z0-9\\p{L}]|[^\\s]",
         "gmu",
       );
 
-      sentenceOrHtmlTag.match(regex)?.forEach((word) => {
+      (sentenceOrHtmlTag + " ").match(regex)?.forEach((word) => {
         sentenceSplitIntoWords.push(word);
       });
 
