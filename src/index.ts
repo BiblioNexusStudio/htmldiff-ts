@@ -2,7 +2,6 @@ import { AbstractDiff } from "./abstract-diff";
 import { HtmlDiffConfig } from "./html-diff-config";
 import { Operation } from "./operation";
 import { MatchingBlock } from "./matching-block";
-import { ListDiffLines } from "./list-diff-lines";
 
 export default class HtmlDiff extends AbstractDiff {
   protected wordIndices: { [key: string]: number[] } = {};
@@ -180,7 +179,7 @@ export default class HtmlDiff extends AbstractDiff {
   }
 
   protected isSelfClosingTag(text: string): boolean {
-    return /<[^>]+\/\s*>/i.test(text);
+    return /<[^>]+\/\s*>/iu.test(text);
   }
 
   protected isClosingIsolatedDiffTag(
@@ -195,9 +194,9 @@ export default class HtmlDiff extends AbstractDiff {
             ),
           }
         : this.config.getIsolatedDiffTags();
-    const pattern = /<\/(\w+)(\s+[^>]*)?>/i;
 
     for (const key in tagsToMatch) {
+      const pattern = new RegExp(`<\\/${key}(\\s+[^>]*)?>`, "iu");
       if (pattern.test(item)) {
         return key;
       }
@@ -275,9 +274,7 @@ export default class HtmlDiff extends AbstractDiff {
     const oldText = this.findIsolatedDiffTagsInOld(operation, pos).join("");
     const newText = this.newIsolatedDiffTags[pos].join("");
 
-    if (this.isListPlaceholder(placeholder)) {
-      return this.diffList(oldText, newText);
-    } else if (this.isLinkPlaceholder(placeholder)) {
+    if (this.isLinkPlaceholder(placeholder)) {
       return this.diffElementsByAttribute(oldText, newText, "href", "a");
     } else if (this.isImagePlaceholder(placeholder)) {
       return this.diffElementsByAttribute(oldText, newText, "src", "img");
@@ -297,7 +294,7 @@ export default class HtmlDiff extends AbstractDiff {
     let wrapEnd = "";
 
     if (stripWrappingTags) {
-      const pattern = /(^<[^>]+>)|(<\/[^>]+>$)/i;
+      const pattern = /(^<[^>]+>)|(<\/[^>]+>$)/giu;
       const matches = newText.match(pattern) || [];
 
       wrapStart = matches[0] || "";
@@ -313,11 +310,6 @@ export default class HtmlDiff extends AbstractDiff {
       this.config,
     );
     return wrapStart + diff.build() + wrapEnd;
-  }
-
-  protected diffList(oldText: string, newText: string): string {
-    const diff = ListDiffLines.create(oldText, newText, this.config);
-    return diff.build();
   }
 
   protected diffPicture(oldText: string, newText: string): string {
@@ -365,18 +357,14 @@ export default class HtmlDiff extends AbstractDiff {
     attribute: string,
   ): string | null {
     const pattern = new RegExp(
-      `<[^>]*\\b${attribute}\\s*=\\s*(['"])(.*?)\\1[^>]*>`,
-      "i",
+      `<[^>]*\\b${attribute}\\s*=\\s*(['"])(.*)\\1[^>]*>`,
+      "iu",
     );
     const matches = text.match(pattern);
     if (matches) {
       return this.htmlspecialcharsDecode(matches[2]);
     }
     return null;
-  }
-
-  protected isListPlaceholder(text: string): boolean {
-    return this.isPlaceholderType(text, ["ol", "dl", "ul"]);
   }
 
   protected isLinkPlaceholder(text: string): boolean {
@@ -500,11 +488,11 @@ export default class HtmlDiff extends AbstractDiff {
   }
 
   protected isOpeningTag(item: string): boolean {
-    return /<[^>]+>\s*/i.test(item);
+    return /<[^>]+>\s*/iu.test(item);
   }
 
   protected isClosingTag(item: string): boolean {
-    return /<\/[^>]+>\s*/i.test(item);
+    return /<\/[^>]+>\s*/iu.test(item);
   }
 
   protected operations(): Operation[] {
