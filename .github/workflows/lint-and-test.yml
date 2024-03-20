@@ -1,0 +1,22 @@
+name: Lint and Test
+
+on:
+    pull_request:
+        branches: [master]
+
+jobs:
+    lint-and-test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - uses: oven-sh/setup-bun@v1
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Lint
+              run: yarn lint
+
+            - name: Test
+              run: yarn test

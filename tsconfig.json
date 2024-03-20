@@ -1,12 +1,17 @@
 {
     "compilerOptions": {
         "target": "esnext",
+        "declaration": true,
         "module": "esnext",
+        "noEmit": true,
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "skipLibCheck": true
     },
+    "include": [
+        "src/**/*.ts"
+    ],
     "exclude": [
         "node_modules",
         "dist",
