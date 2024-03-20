@@ -18,20 +18,7 @@ jobs:
             - name: Build
               run: yarn build
 
-            - name: Commit files
-              run: |
-                  git config --local user.email "action@github.com"
-                  git config --local user.name "GitHub Action"
-                  git commit -m "Release ${{ github.ref }}" -a
-
-            - name: Push changes
-              uses: ad-m/github-push-action@master
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  branch: ${{ github.ref }}
-
             - name: Create Release
-              id: create_release
               uses: actions/create-release@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
