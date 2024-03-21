@@ -1,0 +1,41 @@
+name: Tag Release
+
+on:
+    push:
+        branches: [master]
+
+jobs:
+    build-and-release:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - uses: oven-sh/setup-bun@v1
+
+            - name: Fetch tags
+              run: git fetch --tags
+
+            - name: Get latest tag
+              id: get_latest_tag
+              run: |
+                  latest_tag=$(git describe --tags --abbrev=0 --match="[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo "1.0.0")
+                  echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
+
+            - name: Bump patch version
+              id: bump_patch_version
+              run: |
+                  latest_tag=${{ steps.get_latest_tag.outputs.latest_tag }}
+                  version_parts=(${latest_tag//./ })
+                  patch_version=$((${version_parts[2]} + 1))
+                  new_tag="${version_parts[0]}.${version_parts[1]}.${patch_version}"
+                  echo "new_tag=${new_tag}" >> $GITHUB_OUTPUT
+
+            - name: Create Release
+              uses: actions/create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: ${{ steps.bump_patch_version.outputs.new_tag }}
+                  release_name: Release ${{ steps.bump_patch_version.outputs.new_tag }}
+                  draft: false
+                  prerelease: false
