@@ -4,10 +4,12 @@ import { Operation } from './operation';
 import { MatchingBlock } from './matching-block';
 
 export default class HtmlDiff extends AbstractDiff {
-    protected wordIndices: { [key: string]: number[] } = {};
+    protected wordIndices: Map<string, number[]> = new Map();
     protected newIsolatedDiffTags: { [key: number]: string[] } = {};
     protected oldIsolatedDiffTags: { [key: number]: string[] } = {};
     protected justProcessedDeleteFromIndex = -1;
+    protected regularOrStrippedWordCache: Map<string, string> = new Map();
+    protected oldTextIsOnlyWhitespaceCache: Map<number, number> = new Map();
 
     public static create(oldText: string, newText: string, config: HtmlDiffConfig | null = null): HtmlDiff {
         const diff = new this(oldText, newText);
@@ -49,7 +51,7 @@ export default class HtmlDiff extends AbstractDiff {
     }
 
     protected indexNewWords(): void {
-        this.wordIndices = {};
+        this.wordIndices = new Map();
 
         for (let i = 0; i < this.newWords.length; i++) {
             let word = this.newWords[i];
@@ -57,11 +59,11 @@ export default class HtmlDiff extends AbstractDiff {
                 word = this.stripTagAttributes(word);
             }
 
-            if (!this.wordIndices[word]) {
-                this.wordIndices[word] = [];
+            if (!this.wordIndices.has(word)) {
+                this.wordIndices.set(word, []);
             }
 
-            this.wordIndices[word].push(i);
+            this.wordIndices.get(word)!.push(i);
         }
     }
 
@@ -574,18 +576,24 @@ export default class HtmlDiff extends AbstractDiff {
 
         for (let indexInOld = startInOld; indexInOld < endInOld; indexInOld++) {
             const newMatchLengthAt: { [key: number]: number } = {};
-            let index = this.oldWords[indexInOld];
+            const initialWord = this.oldWords[indexInOld];
 
-            if (this.isTag(index)) {
-                index = this.stripTagAttributes(index);
+            let regularOrStrippedWord = this.regularOrStrippedWordCache.get(initialWord);
+            if (regularOrStrippedWord === undefined) {
+                if (this.isTag(initialWord)) {
+                    regularOrStrippedWord = this.stripTagAttributes(initialWord);
+                } else {
+                    regularOrStrippedWord = initialWord;
+                }
+                this.regularOrStrippedWordCache.set(initialWord, regularOrStrippedWord);
             }
 
-            if (!this.wordIndices[index]) {
+            if (!this.wordIndices.has(regularOrStrippedWord)) {
                 matchLengthAt = newMatchLengthAt;
                 continue;
             }
 
-            for (const indexInNew of this.wordIndices[index]) {
+            for (const indexInNew of this.wordIndices.get(regularOrStrippedWord)!) {
                 if (indexInNew < startInNew) {
                     continue;
                 }
@@ -618,18 +626,23 @@ export default class HtmlDiff extends AbstractDiff {
     }
 
     protected oldTextIsOnlyWhitespace(startingAtWord: number, wordCount: number): boolean {
-        let isWhitespace = true;
-
-        for (let index = startingAtWord; index < startingAtWord + wordCount; index++) {
-            const oldWord = this.oldWords[index];
-
-            if (oldWord !== '' && oldWord.trim() !== '') {
-                isWhitespace = false;
-                break;
-            }
+        let largestWhitespaceLength = this.oldTextIsOnlyWhitespaceCache.get(startingAtWord);
+        if (largestWhitespaceLength !== undefined) {
+            return wordCount <= largestWhitespaceLength;
         }
 
-        return isWhitespace;
+        largestWhitespaceLength = 0;
+        for (let index = startingAtWord; index < this.oldWords.length; index++) {
+            const oldWord = this.oldWords[index];
+            if (oldWord.trim() !== '') {
+                break;
+            }
+            largestWhitespaceLength++;
+        }
+
+        this.oldTextIsOnlyWhitespaceCache.set(startingAtWord, largestWhitespaceLength);
+
+        return wordCount <= largestWhitespaceLength;
     }
 
     private htmlspecialcharsDecode(input: string) {
