@@ -277,10 +277,12 @@ class HtmlDiff extends AbstractDiff {
   constructor() {
     super(...arguments);
   }
-  wordIndices = {};
+  wordIndices = new Map;
   newIsolatedDiffTags = {};
   oldIsolatedDiffTags = {};
   justProcessedDeleteFromIndex = -1;
+  regularOrStrippedWordCache = new Map;
+  oldTextIsOnlyWhitespaceCache = new Map;
   static create(oldText, newText, config = null) {
     const diff = new this(oldText, newText);
     if (config !== null) {
@@ -310,16 +312,16 @@ class HtmlDiff extends AbstractDiff {
     return this.content;
   }
   indexNewWords() {
-    this.wordIndices = {};
+    this.wordIndices = new Map;
     for (let i = 0;i < this.newWords.length; i++) {
       let word = this.newWords[i];
       if (this.isTag(word)) {
         word = this.stripTagAttributes(word);
       }
-      if (!this.wordIndices[word]) {
-        this.wordIndices[word] = [];
+      if (!this.wordIndices.has(word)) {
+        this.wordIndices.set(word, []);
       }
-      this.wordIndices[word].push(i);
+      this.wordIndices.get(word).push(i);
     }
   }
   replaceIsolatedDiffTags() {
@@ -712,15 +714,21 @@ class HtmlDiff extends AbstractDiff {
     let matchLengthAt = {};
     for (let indexInOld = startInOld;indexInOld < endInOld; indexInOld++) {
       const newMatchLengthAt = {};
-      let index = this.oldWords[indexInOld];
-      if (this.isTag(index)) {
-        index = this.stripTagAttributes(index);
+      const initialWord = this.oldWords[indexInOld];
+      let regularOrStrippedWord = this.regularOrStrippedWordCache.get(initialWord);
+      if (regularOrStrippedWord === undefined) {
+        if (this.isTag(initialWord)) {
+          regularOrStrippedWord = this.stripTagAttributes(initialWord);
+        } else {
+          regularOrStrippedWord = initialWord;
+        }
+        this.regularOrStrippedWordCache.set(initialWord, regularOrStrippedWord);
       }
-      if (!this.wordIndices[index]) {
+      if (!this.wordIndices.has(regularOrStrippedWord)) {
         matchLengthAt = newMatchLengthAt;
         continue;
       }
-      for (const indexInNew of this.wordIndices[index]) {
+      for (const indexInNew of this.wordIndices.get(regularOrStrippedWord)) {
         if (indexInNew < startInNew) {
           continue;
         }
@@ -743,15 +751,20 @@ class HtmlDiff extends AbstractDiff {
     return null;
   }
   oldTextIsOnlyWhitespace(startingAtWord, wordCount) {
-    let isWhitespace = true;
-    for (let index = startingAtWord;index < startingAtWord + wordCount; index++) {
+    let largestWhitespaceLength = this.oldTextIsOnlyWhitespaceCache.get(startingAtWord);
+    if (largestWhitespaceLength !== undefined) {
+      return wordCount <= largestWhitespaceLength;
+    }
+    largestWhitespaceLength = 0;
+    for (let index = startingAtWord;index < this.oldWords.length; index++) {
       const oldWord = this.oldWords[index];
-      if (oldWord !== "" && oldWord.trim() !== "") {
-        isWhitespace = false;
+      if (oldWord.trim() !== "") {
         break;
       }
+      largestWhitespaceLength++;
     }
-    return isWhitespace;
+    this.oldTextIsOnlyWhitespaceCache.set(startingAtWord, largestWhitespaceLength);
+    return wordCount <= largestWhitespaceLength;
   }
   htmlspecialcharsDecode(input) {
     return input.toString().replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");

@@ -3,9 +3,7 @@ import { HtmlDiffConfig } from './html-diff-config';
 import { Operation } from './operation';
 import { MatchingBlock } from './matching-block';
 export default class HtmlDiff extends AbstractDiff {
-    protected wordIndices: {
-        [key: string]: number[];
-    };
+    protected wordIndices: Map<string, number[]>;
     protected newIsolatedDiffTags: {
         [key: number]: string[];
     };
@@ -13,6 +11,8 @@ export default class HtmlDiff extends AbstractDiff {
         [key: number]: string[];
     };
     protected justProcessedDeleteFromIndex: number;
+    protected regularOrStrippedWordCache: Map<string, string>;
+    protected oldTextIsOnlyWhitespaceCache: Map<number, number>;
     static create(oldText: string, newText: string, config?: HtmlDiffConfig | null): HtmlDiff;
     setInsertSpaceInReplace(boolean: boolean): HtmlDiff;
     getInsertSpaceInReplace(): boolean;
