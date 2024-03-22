@@ -7,6 +7,7 @@ export default class HtmlDiff extends AbstractDiff {
     protected wordIndices: { [key: string]: number[] } = {};
     protected newIsolatedDiffTags: { [key: number]: string[] } = {};
     protected oldIsolatedDiffTags: { [key: number]: string[] } = {};
+    protected justProcessedDeleteFromIndex = -1;
 
     public static create(oldText: string, newText: string, config: HtmlDiffConfig | null = null): HtmlDiff {
         const diff = new this(oldText, newText);
@@ -41,6 +42,8 @@ export default class HtmlDiff extends AbstractDiff {
         for (const item of operations) {
             this.performOperation(item);
         }
+
+        this.replaceParagraphSymbolWithBreaksIfNeeded();
 
         return this.content;
     }
@@ -149,7 +152,7 @@ export default class HtmlDiff extends AbstractDiff {
     }
 
     protected isSelfClosingTag(text: string): boolean {
-        return /<[^>]+\/\s*>/iu.test(text);
+        return /<br.*>/.test(text) || /<[^>]+\/\s*>/iu.test(text);
     }
 
     protected isClosingIsolatedDiffTag(item: string, currentIsolatedDiffTag: string | null = null): string | false {
@@ -193,28 +196,55 @@ export default class HtmlDiff extends AbstractDiff {
     }
 
     protected processInsertOperation(operation: Operation, cssClass: string): void {
+        this.justProcessedDeleteFromIndex = -1;
         const text: string[] = [];
+        const paragraphSplitIndexes = [];
+        let rawIndex = 0;
         for (let pos = operation.startInNew; pos < operation.endInNew; pos++) {
             const s = this.newWords[pos];
             if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
                 text.push(...this.newIsolatedDiffTags[pos]);
+            } else if (s === '¶') {
+                paragraphSplitIndexes.push(rawIndex);
+                text.push(this.wrapText(s, 'ins', cssClass));
             } else {
                 text.push(s);
             }
+            rawIndex++;
         }
+        paragraphSplitIndexes.reverse().forEach((paragraphSplitIndex) => {
+            if (paragraphSplitIndex > 0 && paragraphSplitIndex < text.length - 1) {
+                const temp = text[paragraphSplitIndex - 1];
+                text[paragraphSplitIndex - 1] = text[paragraphSplitIndex];
+                text[paragraphSplitIndex] = temp;
+            }
+        });
         this.insertTag('ins', cssClass, text);
     }
 
     protected processDeleteOperation(operation: Operation, cssClass: string): void {
         const text: string[] = [];
+        const paragraphMergeIndexes = [];
+        let rawIndex = 0;
         for (let pos = operation.startInOld; pos < operation.endInOld; pos++) {
             const s = this.oldWords[pos];
             if (this.config.isIsolatedDiffTagPlaceholder(s) && this.oldIsolatedDiffTags[pos]) {
                 text.push(...this.oldIsolatedDiffTags[pos]);
             } else {
+                if (s === '¶') {
+                    paragraphMergeIndexes.push(rawIndex);
+                }
                 text.push(s);
             }
+            rawIndex++;
         }
+        paragraphMergeIndexes.reverse().forEach((paragraphMergeIndex) => {
+            if (paragraphMergeIndex > 0 && paragraphMergeIndex < text.length - 1) {
+                text.splice(paragraphMergeIndex + 1, 1);
+                text.splice(paragraphMergeIndex - 1, 1);
+            }
+        });
+        this.justProcessedDeleteFromIndex = this.content.length;
         this.insertTag('del', cssClass, text);
     }
 
@@ -282,11 +312,34 @@ export default class HtmlDiff extends AbstractDiff {
             const s = this.newWords[pos];
             if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
                 result.push(this.diffIsolatedPlaceholder(operation, pos, s));
+            } else if (s === '¶') {
+                if (
+                    pos > operation.startInNew &&
+                    this.newWords[pos - 1] === '</p>' &&
+                    pos < operation.endInNew - 1 &&
+                    this.newWords[pos + 1].startsWith('<p>')
+                ) {
+                    result.push('<br>');
+                }
             } else {
                 result.push(s);
             }
         }
+
+        if (result[0] === '</p>' || (result[0] === '.' && result[1] === '</p>')) {
+            this.replaceParagraphSymbolWithBreaksIfNeeded();
+        }
+        this.justProcessedDeleteFromIndex = -1;
         this.content += result.join('');
+    }
+
+    protected replaceParagraphSymbolWithBreaksIfNeeded() {
+        if (this.justProcessedDeleteFromIndex > -1) {
+            const contentBeforeIndex = this.content.slice(0, this.justProcessedDeleteFromIndex);
+            const contentAfterIndex = this.content.slice(this.justProcessedDeleteFromIndex);
+            const replacedContent = contentAfterIndex.replace(/¶/g, '<br><br>');
+            this.content = contentBeforeIndex + replacedContent;
+        }
     }
 
     protected getAttributeFromTag(text: string, attribute: string): string | null {

@@ -28,3 +28,32 @@ test('works with apostrophes', () => {
 
     expect(result).toBe(`<p>this's a apost</p>`);
 });
+
+test('works with paragraphs being combined', () => {
+    const result = HtmlDiff.create(
+        `<p>one two three</p><p>four five six</p>`,
+        `<p>one two three four five six</p>`
+    ).build();
+
+    expect(result).toBe(`<p>one two three<del class=\"diffmod\">¶</del>four five six</p>`);
+});
+
+test('works with paragraphs being split', () => {
+    const result = HtmlDiff.create(
+        `<p>one two three four five six</p>`,
+        `<p>one two three</p><p>four five six</p>`
+    ).build();
+
+    expect(result).toBe(`<p>one two three<ins class=\"diffmod\">¶</ins></p><p>four five six</p>`);
+});
+
+test('works when deleting a paragraph', () => {
+    const result = HtmlDiff.create(
+        `<p>one two three four five six.</p><p>seven eight nine ten.</p><p>eleven twelve thirteen.</p><p>fourteen fifteen sixteen.</p>`,
+        `<p>one two three four five six.</p><p>eleven twelve thirteen.</p><p>fourteen fifteen sixteen.</p>`
+    ).build();
+
+    expect(result).toBe(
+        `<p>one two three four five six<del class=\"diffdel\">.<br><br>seven eight nine ten</del>.</p><br><p>eleven twelve thirteen.</p><br><p>fourteen fifteen sixteen.</p>`
+    );
+});

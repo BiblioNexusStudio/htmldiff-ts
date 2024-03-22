@@ -65,7 +65,12 @@ export class AbstractDiff {
             }
 
             if (sentenceOrHtmlTag[0] === '<') {
-                words.push(sentenceOrHtmlTag);
+                if (sentenceOrHtmlTag === '</p>') {
+                    words.push(sentenceOrHtmlTag);
+                    words.push('¶');
+                } else {
+                    words.push(sentenceOrHtmlTag);
+                }
                 return;
             }
 

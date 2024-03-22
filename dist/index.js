@@ -195,7 +195,12 @@ class AbstractDiff {
         return;
       }
       if (sentenceOrHtmlTag[0] === "<") {
-        words.push(sentenceOrHtmlTag);
+        if (sentenceOrHtmlTag === "</p>") {
+          words.push(sentenceOrHtmlTag);
+          words.push("\xB6");
+        } else {
+          words.push(sentenceOrHtmlTag);
+        }
         return;
       }
       sentenceOrHtmlTag = this.normalizeWhitespaceInHtmlSentence(sentenceOrHtmlTag);
@@ -275,6 +280,7 @@ class HtmlDiff extends AbstractDiff {
   wordIndices = {};
   newIsolatedDiffTags = {};
   oldIsolatedDiffTags = {};
+  justProcessedDeleteFromIndex = -1;
   static create(oldText, newText, config = null) {
     const diff = new this(oldText, newText);
     if (config !== null) {
@@ -300,6 +306,7 @@ class HtmlDiff extends AbstractDiff {
     for (const item of operations) {
       this.performOperation(item);
     }
+    this.replaceParagraphSymbolWithBreaksIfNeeded();
     return this.content;
   }
   indexNewWords() {
@@ -383,7 +390,7 @@ class HtmlDiff extends AbstractDiff {
     return false;
   }
   isSelfClosingTag(text) {
-    return /<[^>]+\/\s*>/iu.test(text);
+    return /<br.*>/.test(text) || /<[^>]+\/\s*>/iu.test(text);
   }
   isClosingIsolatedDiffTag(item, currentIsolatedDiffTag = null) {
     const tagsToMatch = currentIsolatedDiffTag !== null ? {
@@ -418,27 +425,54 @@ class HtmlDiff extends AbstractDiff {
     this.processInsertOperation(operation2, "diffmod");
   }
   processInsertOperation(operation2, cssClass) {
+    this.justProcessedDeleteFromIndex = -1;
     const text = [];
+    const paragraphSplitIndexes = [];
+    let rawIndex = 0;
     for (let pos = operation2.startInNew;pos < operation2.endInNew; pos++) {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         text.push(...this.newIsolatedDiffTags[pos]);
+      } else if (s === "\xB6") {
+        paragraphSplitIndexes.push(rawIndex);
+        text.push(this.wrapText(s, "ins", cssClass));
       } else {
         text.push(s);
       }
+      rawIndex++;
     }
+    paragraphSplitIndexes.reverse().forEach((paragraphSplitIndex) => {
+      if (paragraphSplitIndex > 0 && paragraphSplitIndex < text.length - 1) {
+        const temp = text[paragraphSplitIndex - 1];
+        text[paragraphSplitIndex - 1] = text[paragraphSplitIndex];
+        text[paragraphSplitIndex] = temp;
+      }
+    });
     this.insertTag("ins", cssClass, text);
   }
   processDeleteOperation(operation2, cssClass) {
     const text = [];
+    const paragraphMergeIndexes = [];
+    let rawIndex = 0;
     for (let pos = operation2.startInOld;pos < operation2.endInOld; pos++) {
       const s = this.oldWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.oldIsolatedDiffTags[pos]) {
         text.push(...this.oldIsolatedDiffTags[pos]);
       } else {
+        if (s === "\xB6") {
+          paragraphMergeIndexes.push(rawIndex);
+        }
         text.push(s);
       }
+      rawIndex++;
     }
+    paragraphMergeIndexes.reverse().forEach((paragraphMergeIndex) => {
+      if (paragraphMergeIndex > 0 && paragraphMergeIndex < text.length - 1) {
+        text.splice(paragraphMergeIndex + 1, 1);
+        text.splice(paragraphMergeIndex - 1, 1);
+      }
+    });
+    this.justProcessedDeleteFromIndex = this.content.length;
     this.insertTag("del", cssClass, text);
   }
   diffIsolatedPlaceholder(operation2, pos, placeholder, stripWrappingTags = true) {
@@ -488,11 +522,27 @@ class HtmlDiff extends AbstractDiff {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         result.push(this.diffIsolatedPlaceholder(operation2, pos, s));
+      } else if (s === "\xB6") {
+        if (pos > operation2.startInNew && this.newWords[pos - 1] === "</p>" && pos < operation2.endInNew - 1 && this.newWords[pos + 1].startsWith("<p>")) {
+          result.push("<br>");
+        }
       } else {
         result.push(s);
       }
     }
+    if (result[0] === "</p>" || result[0] === "." && result[1] === "</p>") {
+      this.replaceParagraphSymbolWithBreaksIfNeeded();
+    }
+    this.justProcessedDeleteFromIndex = -1;
     this.content += result.join("");
+  }
+  replaceParagraphSymbolWithBreaksIfNeeded() {
+    if (this.justProcessedDeleteFromIndex > -1) {
+      const contentBeforeIndex = this.content.slice(0, this.justProcessedDeleteFromIndex);
+      const contentAfterIndex = this.content.slice(this.justProcessedDeleteFromIndex);
+      const replacedContent = contentAfterIndex.replace(/¶/g, "<br><br>");
+      this.content = contentBeforeIndex + replacedContent;
+    }
   }
   getAttributeFromTag(text, attribute) {
     const pattern = new RegExp(`<[^>]*\\b${attribute}\\s*=\\s*(['"])(.*)\\1[^>]*>`, "iu");

@@ -12,6 +12,7 @@ export default class HtmlDiff extends AbstractDiff {
     protected oldIsolatedDiffTags: {
         [key: number]: string[];
     };
+    protected justProcessedDeleteFromIndex: number;
     static create(oldText: string, newText: string, config?: HtmlDiffConfig | null): HtmlDiff;
     setInsertSpaceInReplace(boolean: boolean): HtmlDiff;
     getInsertSpaceInReplace(): boolean;
@@ -33,6 +34,7 @@ export default class HtmlDiff extends AbstractDiff {
     protected diffPicture(oldText: string, newText: string): string;
     protected diffElementsByAttribute(oldText: string, newText: string, attribute: string, element: string): string;
     protected processEqualOperation(operation: Operation): void;
+    protected replaceParagraphSymbolWithBreaksIfNeeded(): void;
     protected getAttributeFromTag(text: string, attribute: string): string | null;
     protected isLinkPlaceholder(text: string): boolean;
     protected isImagePlaceholder(text: string): boolean;
