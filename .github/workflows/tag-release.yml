@@ -18,8 +18,7 @@ jobs:
             - name: Get latest tag
               id: get_latest_tag
               run: |
-                  latest_tag=$(git tag --sort=-version:refname --list 'v*[0-9].*[0-9].*[0-9]' | head -n 1)
-                  latest_tag=${latest_tag#v}  # Remove the 'v' prefix if present
+                  latest_tag=$(git tag --sort=-version:refname --list '[0-9].*[0-9].*[0-9]' | head -n 1)
                   echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
 
             - name: Bump patch version
