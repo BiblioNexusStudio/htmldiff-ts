@@ -1,7 +1,7 @@
 export class MatchingBlock {
-    public startInOld: number;
-    public startInNew: number;
-    public size: number;
+    startInOld: number;
+    startInNew: number;
+    size: number;
 
     constructor(startInOld: number, startInNew: number, size: number) {
         this.startInOld = startInOld;
@@ -9,15 +9,15 @@ export class MatchingBlock {
         this.size = size;
     }
 
-    public endInOld(): number {
+    endInOld(): number {
         return this.startInOld + this.size;
     }
 
-    public endInNew(): number {
+    endInNew(): number {
         return this.startInNew + this.size;
     }
 
-    public count(): number {
+    count(): number {
         return this.size;
     }
 }

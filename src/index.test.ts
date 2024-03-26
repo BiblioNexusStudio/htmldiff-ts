@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import HtmlDiff from './index';
+import HtmlDiff from './html-diff';
 
 test('works for basic example', () => {
     const result = HtmlDiff.create(
