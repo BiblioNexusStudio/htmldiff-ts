@@ -1,23 +1,20 @@
 {
-    "name": "htmldiff-ts",
-    "version": "1.0.0",
-    "description": "",
-    "main": "dist/index.js",
-    "type": "module",
-    "scripts": {
-        "lint": "eslint . && tsc --noEmit",
-        "build": "bun build src/index.ts --outdir dist && npx tsc --emitDeclarationOnly --outDir dist",
-        "dev": "bun --watch build src/index.ts --outdir dist",
-        "test": "bun test"
-    },
-    "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^7.3.1",
-        "@typescript-eslint/parser": "^7.3.1",
-        "eslint": "^8.57.0",
-        "prettier": "^3.2.5",
-        "typescript": "^5.4.2"
-    },
-    "dependencies": {
-        "striptags": "^3.2.0"
-    }
+  "name": "htmldiff-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/html-diff.js",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . && tsc --noEmit",
+    "build": "bun build src/html-diff.ts --outdir dist && npx tsc --emitDeclarationOnly --outDir dist",
+    "dev": "bun --watch build src/html-diff.ts --outdir dist",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.2"
+  }
 }

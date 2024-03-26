@@ -1,10 +1,6 @@
 // src/html-diff-config.ts
 class HtmlDiffConfig {
-  specialCaseChars = [".", ",", "(", ")", "'"];
-  groupDiffs = true;
-  insertSpaceInReplace = false;
   keepNewLines = false;
-  encoding = "UTF-8";
   isolatedDiffTags = {
     ol: "[[REPLACE_ORDERED_LIST]]",
     ul: "[[REPLACE_UNORDERED_LIST]]",
@@ -17,94 +13,15 @@ class HtmlDiffConfig {
     pre: "[[REPLACE_PRE]]",
     picture: "[[REPLACE_PICTURE]]"
   };
-  matchThreshold = 80;
   spaceMatching = false;
   static create() {
     return new HtmlDiffConfig;
   }
-  constructor() {
-  }
-  getMatchThreshold() {
-    return this.matchThreshold;
-  }
-  setMatchThreshold(matchThreshold) {
-    this.matchThreshold = matchThreshold;
-    return this;
-  }
-  setSpecialCaseChars(chars) {
-    this.specialCaseChars = chars;
-  }
-  getSpecialCaseChars() {
-    return this.specialCaseChars;
-  }
-  addSpecialCaseChar(char) {
-    if (!this.specialCaseChars.includes(char)) {
-      this.specialCaseChars.push(char);
-    }
-    return this;
-  }
-  removeSpecialCaseChar(char) {
-    const index = this.specialCaseChars.indexOf(char);
-    if (index !== -1) {
-      this.specialCaseChars.splice(index, 1);
-    }
-    return this;
-  }
-  isGroupDiffs() {
-    return this.groupDiffs;
-  }
-  setGroupDiffs(groupDiffs) {
-    this.groupDiffs = groupDiffs;
-    return this;
-  }
-  getEncoding() {
-    return this.encoding;
-  }
-  setEncoding(encoding) {
-    this.encoding = encoding;
-    return this;
-  }
-  isInsertSpaceInReplace() {
-    return this.insertSpaceInReplace;
-  }
-  setInsertSpaceInReplace(insertSpaceInReplace) {
-    this.insertSpaceInReplace = insertSpaceInReplace;
-    return this;
-  }
   isKeepNewLines() {
     return this.keepNewLines;
   }
-  setKeepNewLines(keepNewLines) {
-    this.keepNewLines = keepNewLines;
-  }
   getIsolatedDiffTags() {
     return this.isolatedDiffTags;
-  }
-  setIsolatedDiffTags(isolatedDiffTags) {
-    this.isolatedDiffTags = isolatedDiffTags;
-    return this;
-  }
-  addIsolatedDiffTag(tag, placeholder = null) {
-    if (placeholder === null) {
-      placeholder = `[[REPLACE_${tag.toUpperCase()}]]`;
-    }
-    if (this.isIsolatedDiffTag(tag) && this.isolatedDiffTags[tag] !== placeholder) {
-      throw new Error(`Isolated diff tag "${tag}" already exists using a different placeholder`);
-    }
-    const matchingKey = Object.keys(this.isolatedDiffTags).find((key) => this.isolatedDiffTags[key] === placeholder);
-    if (matchingKey && matchingKey !== tag) {
-      throw new Error(`Placeholder already being used for a different tag "${tag}"`);
-    }
-    if (!this.isIsolatedDiffTag(tag)) {
-      this.isolatedDiffTags[tag] = placeholder;
-    }
-    return this;
-  }
-  removeIsolatedDiffTag(tag) {
-    if (this.isIsolatedDiffTag(tag)) {
-      delete this.isolatedDiffTags[tag];
-    }
-    return this;
   }
   isIsolatedDiffTag(tag) {
     return tag in this.isolatedDiffTags;
@@ -118,125 +35,15 @@ class HtmlDiffConfig {
   isSpaceMatching() {
     return this.spaceMatching;
   }
-  setSpaceMatching(spaceMatching) {
-    this.spaceMatching = spaceMatching;
-  }
-  getOpeningTag(tag) {
-    return new RegExp(`<${tag}[^>]*`, "i");
-  }
-  getClosingTag(tag) {
-    return `</${tag}>`;
-  }
-}
-
-// src/util/string-util.ts
-class StringUtil {
-  constructor() {
-  }
-  strlen(str) {
-    return str.length;
-  }
-  strpos(haystack, needle, offset = 0) {
-    return haystack.indexOf(needle, offset);
-  }
-  stripos(haystack, needle, offset = 0) {
-    return haystack.toLowerCase().indexOf(needle.toLowerCase(), offset);
-  }
-  substr(str, start, length = null) {
-    return str.substr(start, length ?? undefined);
-  }
-}
-
-// src/abstract-diff.ts
-class AbstractDiff {
-  config;
-  content;
-  oldText;
-  newText;
-  oldWords = [];
-  newWords = [];
-  stringUtil;
-  constructor(oldText, newText, encoding = "UTF-8", groupDiffs = null) {
-    this.stringUtil = new StringUtil;
-    this.config = HtmlDiffConfig.create().setEncoding(encoding);
-    if (groupDiffs !== null) {
-      this.config.setGroupDiffs(groupDiffs);
-    }
-    this.oldText = oldText;
-    this.newText = newText;
-    this.content = "";
-  }
-  getConfig() {
-    return this.config;
-  }
-  setConfig(config) {
-    this.config = config;
-    return this;
-  }
-  splitInputsToWords() {
-    this.setOldWords(this.convertHtmlToListOfWords(this.oldText));
-    this.setNewWords(this.convertHtmlToListOfWords(this.newText));
-  }
-  setOldWords(oldWords) {
-    this.oldWords = oldWords;
-  }
-  setNewWords(newWords) {
-    this.newWords = newWords;
-  }
-  convertHtmlToListOfWords(text) {
-    const words = [];
-    let specialCharacters = "";
-    for (const char of this.config.getSpecialCaseChars()) {
-      specialCharacters += ([",", "'"].includes(char) ? "" : "\\") + char;
-    }
-    text = text.replace("\xC2\xA0", " ");
-    text.match(/<.+?>|[^<]+/gmu)?.forEach((sentenceOrHtmlTag) => {
-      if (sentenceOrHtmlTag === "") {
-        return;
-      }
-      if (sentenceOrHtmlTag[0] === "<") {
-        if (sentenceOrHtmlTag === "</p>") {
-          words.push(sentenceOrHtmlTag);
-          words.push("\xB6");
-        } else {
-          words.push(sentenceOrHtmlTag);
-        }
-        return;
-      }
-      sentenceOrHtmlTag = this.normalizeWhitespaceInHtmlSentence(sentenceOrHtmlTag);
-      const sentenceSplitIntoWords = [];
-      const regex = new RegExp("\\s|[" + specialCharacters + "|[a-zA-Z0-9" + specialCharacters + "\\p{L}]+[a-zA-Z0-9\\p{L}]|[^\\s]", "gmu");
-      (sentenceOrHtmlTag + " ").match(regex)?.forEach((word) => {
-        sentenceSplitIntoWords.push(word);
-      });
-      sentenceSplitIntoWords.pop();
-      words.push(...sentenceSplitIntoWords);
-    });
-    return words;
-  }
-  normalizeWhitespaceInHtmlSentence(sentence) {
-    if (this.config.isKeepNewLines() === true) {
-      return sentence;
-    }
-    sentence = sentence.replace(/\s\s+|\r+|\n+|\r\n+/g, " ");
-    const sentenceLength = this.stringUtil.strlen(sentence);
-    const firstCharacter = this.stringUtil.substr(sentence, 0, 1);
-    const lastCharacter = this.stringUtil.substr(sentence, sentenceLength - 1, 1);
-    if (firstCharacter === " " || firstCharacter === "\r" || firstCharacter === "\n") {
-      sentence = " " + sentence.trimStart();
-    }
-    if (sentenceLength > 1 && (lastCharacter === " " || lastCharacter === "\r" || lastCharacter === "\n")) {
-      sentence = sentence.trimEnd() + " ";
-    }
-    return sentence;
-  }
 }
 
 // src/operation.ts
 class Operation {
-  static ADDED = "a";
-  static DELETED = "d";
-  static CHANGED = "c";
+  static INSERT = 1;
+  static DELETE = 2;
+  static REPLACE = 3;
+  static EQUAL = 4;
+  static NONE = 5;
   action;
   startInOld;
   endInOld;
@@ -272,30 +79,80 @@ class MatchingBlock {
   }
 }
 
-// src/index.ts
-class HtmlDiff extends AbstractDiff {
-  constructor() {
-    super(...arguments);
-  }
+// src/html-diff.ts
+class HtmlDiff {
   wordIndices = new Map;
   newIsolatedDiffTags = {};
   oldIsolatedDiffTags = {};
   justProcessedDeleteFromIndex = -1;
-  regularOrStrippedWordCache = new Map;
   oldTextIsOnlyWhitespaceCache = new Map;
-  static create(oldText, newText, config = null) {
-    const diff = new this(oldText, newText);
-    if (config !== null) {
-      diff.setConfig(config);
+  config;
+  content;
+  oldText;
+  newText;
+  oldWords = [];
+  newWords = [];
+  constructor(oldText, newText) {
+    this.config = HtmlDiffConfig.create();
+    this.oldText = oldText;
+    this.newText = newText;
+    this.content = "";
+  }
+  splitInputsToWords() {
+    this.setOldWords(this.convertHtmlToListOfWords(this.oldText));
+    this.setNewWords(this.convertHtmlToListOfWords(this.newText));
+  }
+  setOldWords(oldWords) {
+    this.oldWords = oldWords;
+  }
+  setNewWords(newWords) {
+    this.newWords = newWords;
+  }
+  convertHtmlToListOfWords(text) {
+    const words = [];
+    text = text.replace("\xC2\xA0", " ");
+    text.match(/<.+?>|[^<]+/gmu)?.forEach((sentenceOrHtmlTag) => {
+      if (sentenceOrHtmlTag === "") {
+        return;
+      }
+      if (sentenceOrHtmlTag[0] === "<") {
+        if (sentenceOrHtmlTag === "</p>") {
+          words.push(sentenceOrHtmlTag);
+          words.push("\xB6");
+        } else {
+          words.push(sentenceOrHtmlTag);
+        }
+        return;
+      }
+      sentenceOrHtmlTag = this.normalizeWhitespaceInHtmlSentence(sentenceOrHtmlTag);
+      const sentenceSplitIntoWords = [];
+      const regex = new RegExp("\\s|[,.()']|[a-zA-Z0-9,.()'\\p{L}]+[a-zA-Z0-9\\p{L}]|[^\\s]", "gmu");
+      (sentenceOrHtmlTag + " ").match(regex)?.forEach((word) => {
+        sentenceSplitIntoWords.push(word);
+      });
+      sentenceSplitIntoWords.pop();
+      words.push(...sentenceSplitIntoWords);
+    });
+    return words;
+  }
+  normalizeWhitespaceInHtmlSentence(sentence) {
+    if (this.config.isKeepNewLines() === true) {
+      return sentence;
     }
-    return diff;
+    sentence = sentence.replace(/\s\s+|\r+|\n+|\r\n+/g, " ");
+    const sentenceLength = sentence.length;
+    const firstCharacter = sentence[0];
+    const lastCharacter = sentence[sentenceLength - 1];
+    if (firstCharacter === " " || firstCharacter === "\r" || firstCharacter === "\n") {
+      sentence = " " + sentence.trimStart();
+    }
+    if (sentenceLength > 1 && (lastCharacter === " " || lastCharacter === "\r" || lastCharacter === "\n")) {
+      sentence = sentence.trimEnd() + " ";
+    }
+    return sentence;
   }
-  setInsertSpaceInReplace(boolean) {
-    this.config.setInsertSpaceInReplace(boolean);
-    return this;
-  }
-  getInsertSpaceInReplace() {
-    return this.config.isInsertSpaceInReplace();
+  static create(oldText, newText) {
+    return new HtmlDiff(oldText, newText);
   }
   build() {
     if (this.oldText === this.newText) {
@@ -408,16 +265,16 @@ class HtmlDiff extends AbstractDiff {
   }
   performOperation(operation2) {
     switch (operation2.action) {
-      case "equal":
+      case Operation.EQUAL:
         this.processEqualOperation(operation2);
         break;
-      case "delete":
+      case Operation.DELETE:
         this.processDeleteOperation(operation2, "diffdel");
         break;
-      case "insert":
+      case Operation.INSERT:
         this.processInsertOperation(operation2, "diffins");
         break;
-      case "replace":
+      case Operation.REPLACE:
         this.processReplaceOperation(operation2);
         break;
     }
@@ -500,7 +357,7 @@ class HtmlDiff extends AbstractDiff {
       oldText = oldText.replace(pattern, "");
       newText = newText.replace(pattern, "");
     }
-    const diff = this.constructor.create(oldText, newText, this.config);
+    const diff = HtmlDiff.create(oldText, newText);
     return wrapStart + diff.build() + wrapEnd;
   }
   diffPicture(oldText, newText) {
@@ -659,11 +516,11 @@ class HtmlDiff extends AbstractDiff {
       const matchStartsAtCurrentPositionInOld = positionInOld === match.startInOld;
       const matchStartsAtCurrentPositionInNew = positionInNew === match.startInNew;
       const action = this.getAction(matchStartsAtCurrentPositionInOld, matchStartsAtCurrentPositionInNew);
-      if (action !== "none") {
+      if (action !== Operation.NONE) {
         operations.push(new Operation(action, positionInOld, match.startInOld, positionInNew, match.startInNew));
       }
       if (match.size !== 0) {
-        operations.push(new Operation("equal", match.startInOld, match.endInOld(), match.startInNew, match.endInNew()));
+        operations.push(new Operation(Operation.EQUAL, match.startInOld, match.endInOld(), match.startInNew, match.endInNew()));
       }
       positionInOld = match.endInOld();
       positionInNew = match.endInNew();
@@ -672,13 +529,13 @@ class HtmlDiff extends AbstractDiff {
   }
   getAction(matchStartsAtCurrentPositionInOld, matchStartsAtCurrentPositionInNew) {
     if (!matchStartsAtCurrentPositionInOld && !matchStartsAtCurrentPositionInNew) {
-      return "replace";
+      return Operation.REPLACE;
     } else if (matchStartsAtCurrentPositionInOld && !matchStartsAtCurrentPositionInNew) {
-      return "insert";
+      return Operation.INSERT;
     } else if (!matchStartsAtCurrentPositionInOld && matchStartsAtCurrentPositionInNew) {
-      return "delete";
+      return Operation.DELETE;
     } else {
-      return "none";
+      return Operation.NONE;
     }
   }
   matchingBlocks() {
@@ -707,7 +564,6 @@ class HtmlDiff extends AbstractDiff {
     return word.trim().replace(/[<>]/g, "");
   }
   findMatch(startInOld, endInOld, startInNew, endInNew) {
-    const groupDiffs = this.config.isGroupDiffs();
     let bestMatchInOld = startInOld;
     let bestMatchInNew = startInNew;
     let bestMatchSize = 0;
@@ -715,14 +571,11 @@ class HtmlDiff extends AbstractDiff {
     for (let indexInOld = startInOld;indexInOld < endInOld; indexInOld++) {
       const newMatchLengthAt = {};
       const initialWord = this.oldWords[indexInOld];
-      let regularOrStrippedWord = this.regularOrStrippedWordCache.get(initialWord);
-      if (regularOrStrippedWord === undefined) {
-        if (this.isTag(initialWord)) {
-          regularOrStrippedWord = this.stripTagAttributes(initialWord);
-        } else {
-          regularOrStrippedWord = initialWord;
-        }
-        this.regularOrStrippedWordCache.set(initialWord, regularOrStrippedWord);
+      let regularOrStrippedWord;
+      if (this.isTag(initialWord)) {
+        regularOrStrippedWord = this.stripTagAttributes(initialWord);
+      } else {
+        regularOrStrippedWord = initialWord;
       }
       if (!this.wordIndices.has(regularOrStrippedWord)) {
         matchLengthAt = newMatchLengthAt;
@@ -737,7 +590,7 @@ class HtmlDiff extends AbstractDiff {
         }
         const newMatchLength = (matchLengthAt[indexInNew - 1] || 0) + 1;
         newMatchLengthAt[indexInNew] = newMatchLength;
-        if (newMatchLength > bestMatchSize || groupDiffs && bestMatchSize > 0 && this.oldTextIsOnlyWhitespace(bestMatchInOld, bestMatchSize)) {
+        if (newMatchLength > bestMatchSize || bestMatchSize > 0 && this.oldTextIsOnlyWhitespace(bestMatchInOld, bestMatchSize)) {
           bestMatchInOld = indexInOld - newMatchLength + 1;
           bestMatchInNew = indexInNew - newMatchLength + 1;
           bestMatchSize = newMatchLength;
@@ -745,7 +598,7 @@ class HtmlDiff extends AbstractDiff {
       }
       matchLengthAt = newMatchLengthAt;
     }
-    if (bestMatchSize !== 0 && (!groupDiffs || !this.oldTextIsOnlyWhitespace(bestMatchInOld, bestMatchSize))) {
+    if (bestMatchSize !== 0 && !this.oldTextIsOnlyWhitespace(bestMatchInOld, bestMatchSize)) {
       return new MatchingBlock(bestMatchInOld, bestMatchInNew, bestMatchSize);
     }
     return null;
@@ -767,7 +620,7 @@ class HtmlDiff extends AbstractDiff {
     return wordCount <= largestWhitespaceLength;
   }
   htmlspecialcharsDecode(input) {
-    return input.toString().replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    return input.toString().replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&amp;", "&");
   }
 }
 export {
