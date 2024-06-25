@@ -385,16 +385,7 @@ export default class HtmlDiff {
             const s = this.newWords[pos];
             if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
                 result.push(this.diffIsolatedPlaceholder(operation, pos, s));
-            } else if (s === '¶') {
-                if (
-                    pos > operation.startInNew &&
-                    this.newWords[pos - 1] === '</p>' &&
-                    pos < operation.endInNew - 1 &&
-                    this.newWords[pos + 1].startsWith('<p>')
-                ) {
-                    result.push('<br>');
-                }
-            } else {
+            } else if (s !== '¶') {
                 result.push(s);
             }
         }
