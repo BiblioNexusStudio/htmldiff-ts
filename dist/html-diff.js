@@ -381,11 +381,7 @@ class HtmlDiff {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         result.push(this.diffIsolatedPlaceholder(operation2, pos, s));
-      } else if (s === "\xB6") {
-        if (pos > operation2.startInNew && this.newWords[pos - 1] === "</p>" && pos < operation2.endInNew - 1 && this.newWords[pos + 1].startsWith("<p>")) {
-          result.push("<br>");
-        }
-      } else {
+      } else if (s !== "\xB6") {
         result.push(s);
       }
     }

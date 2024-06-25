@@ -12,6 +12,17 @@ test('works for basic example', () => {
     );
 });
 
+test('does not add weird newlines', () => {
+    const result = HtmlDiff.create(
+        `<h1>AVVITES</h1><p>1. Ancient people who lived in villages near Gaza before they were largely destroyed by a Philistine invasion (<span id="bibleref-5f2e22f9-25cc-4a3c-ab3a-df6da89c9bb7" data-bntype="bibleReference" data-startverse="1005002023" data-endverse="1005002023" style="color: green" onclick="onBibleReferenceClick('bibleref-5f2e22f9-25cc-4a3c-ab3a-df6da89c9bb7', '1005002023', '1005002023')">Dt 2:23</span>; <span id="bibleref-c0f7ab39-675f-45f6-8a3d-8509920adf64" data-bntype="bibleReference" data-startverse="1006013003" data-endverse="1006013003" style="color: green" onclick="onBibleReferenceClick('bibleref-c0f7ab39-675f-45f6-8a3d-8509920adf64', '1006013003', '1006013003')">Jos 13:3</span>).</p><p>2. Designation for the inhabitants of the Syrian district of Avva who were relocated by Shalmaneser of Assyria in Samaria after its conquest in 722 BC (<span id="bibleref-80211c41-a973-4a19-b9ad-a7396374e778" data-bntype="bibleReference" data-startverse="1012017031" data-endverse="1012017031" style="color: green" onclick="onBibleReferenceClick('bibleref-80211c41-a973-4a19-b9ad-a7396374e778', '1012017031', '1012017031')">2&nbsp;Kgs 17:31</span>). <em>See</em> <span data-bntype="resourceReference" data-resourceid="3057" data-resourcetype="tyndaleBibleDictionary" style="color: blue">Avva</span>.</p>`,
+        `<h1>AVVITESs</h1><p>1. Ancient people who lived in villages near Gaza before they were largely destroyed by a Philistine invasion (<span id="bibleref-4101396f-1723-49c3-bf5b-b7d81c0f5cf0" data-bntype="bibleReference" data-startverse="1005002023" data-endverse="1005002023" style="color: green" onclick="onBibleReferenceClick('bibleref-4101396f-1723-49c3-bf5b-b7d81c0f5cf0', '1005002023', '1005002023')">Dt 2:23</span>; <span id="bibleref-d5c2d5d6-f199-407c-98a2-594af0a3e8d7" data-bntype="bibleReference" data-startverse="1006013003" data-endverse="1006013003" style="color: green" onclick="onBibleReferenceClick('bibleref-d5c2d5d6-f199-407c-98a2-594af0a3e8d7', '1006013003', '1006013003')">Jos 13:3</span>).</p><p>2. Designation for the inhabitants of the Syrian district of Avva who were relocated by Shalmaneser of Assyria in Samaria after its conquest in 722 BC (<span id="bibleref-c4ea9367-7db6-44de-bf42-35a8e751cb26" data-bntype="bibleReference" data-startverse="1012017031" data-endverse="1012017031" style="color: green" onclick="onBibleReferenceClick('bibleref-c4ea9367-7db6-44de-bf42-35a8e751cb26', '1012017031', '1012017031')">2&nbsp;Kgs 17:31</span>). <em>See</em> <span data-bntype="resourceReference" data-resourceid="3057" data-resourcetype="tyndaleBibleDictionary" style="color: blue">Avva</span>.</p>`
+    ).build();
+
+    expect(result).toBe(
+        `<h1><del class="diffmod">AVVITES</del><ins class="diffmod">AVVITESs</ins></h1><p>1. Ancient people who lived in villages near Gaza before they were largely destroyed by a Philistine invasion (<span id="bibleref-4101396f-1723-49c3-bf5b-b7d81c0f5cf0" data-bntype="bibleReference" data-startverse="1005002023" data-endverse="1005002023" style="color: green" onclick="onBibleReferenceClick('bibleref-4101396f-1723-49c3-bf5b-b7d81c0f5cf0', '1005002023', '1005002023')">Dt 2:23</span>; <span id="bibleref-d5c2d5d6-f199-407c-98a2-594af0a3e8d7" data-bntype="bibleReference" data-startverse="1006013003" data-endverse="1006013003" style="color: green" onclick="onBibleReferenceClick('bibleref-d5c2d5d6-f199-407c-98a2-594af0a3e8d7', '1006013003', '1006013003')">Jos 13:3</span>).</p><p>2. Designation for the inhabitants of the Syrian district of Avva who were relocated by Shalmaneser of Assyria in Samaria after its conquest in 722 BC (<span id="bibleref-c4ea9367-7db6-44de-bf42-35a8e751cb26" data-bntype="bibleReference" data-startverse="1012017031" data-endverse="1012017031" style="color: green" onclick="onBibleReferenceClick('bibleref-c4ea9367-7db6-44de-bf42-35a8e751cb26', '1012017031', '1012017031')">2&nbsp;Kgs 17:31</span>). <em>See</em> <span data-bntype="resourceReference" data-resourceid="3057" data-resourcetype="tyndaleBibleDictionary" style="color: blue">Avva</span>.</p>`
+    );
+});
+
 test('works for link', () => {
     const result = HtmlDiff.create(
         `Testing <a href="http://google.com">Link Changes</a> And when the link <a href="http://samelink.com">stays the same</a>`,
@@ -54,6 +65,6 @@ test('works when deleting a paragraph', () => {
     ).build();
 
     expect(result).toBe(
-        `<p>one two three four five six<del class=\"diffdel\">.<br><br>seven eight nine ten</del>.</p><br><p>eleven twelve thirteen.</p><br><p>fourteen fifteen sixteen.</p>`
+        `<p>one two three four five six<del class=\"diffdel\">.<br><br>seven eight nine ten</del>.</p><p>eleven twelve thirteen.</p><p>fourteen fifteen sixteen.</p>`
     );
 });
