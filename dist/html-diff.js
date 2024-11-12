@@ -263,32 +263,32 @@ class HtmlDiff {
     }
     return false;
   }
-  performOperation(operation2) {
-    switch (operation2.action) {
+  performOperation(operation) {
+    switch (operation.action) {
       case Operation.EQUAL:
-        this.processEqualOperation(operation2);
+        this.processEqualOperation(operation);
         break;
       case Operation.DELETE:
-        this.processDeleteOperation(operation2, "diffdel");
+        this.processDeleteOperation(operation, "diffdel");
         break;
       case Operation.INSERT:
-        this.processInsertOperation(operation2, "diffins");
+        this.processInsertOperation(operation, "diffins");
         break;
       case Operation.REPLACE:
-        this.processReplaceOperation(operation2);
+        this.processReplaceOperation(operation);
         break;
     }
   }
-  processReplaceOperation(operation2) {
-    this.processDeleteOperation(operation2, "diffmod");
-    this.processInsertOperation(operation2, "diffmod");
+  processReplaceOperation(operation) {
+    this.processDeleteOperation(operation, "diffmod");
+    this.processInsertOperation(operation, "diffmod");
   }
-  processInsertOperation(operation2, cssClass) {
+  processInsertOperation(operation, cssClass) {
     this.justProcessedDeleteFromIndex = -1;
     const text = [];
     const paragraphSplitIndexes = [];
     let rawIndex = 0;
-    for (let pos = operation2.startInNew;pos < operation2.endInNew; pos++) {
+    for (let pos = operation.startInNew;pos < operation.endInNew; pos++) {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         text.push(...this.newIsolatedDiffTags[pos]);
@@ -309,11 +309,11 @@ class HtmlDiff {
     });
     this.insertTag("ins", cssClass, text);
   }
-  processDeleteOperation(operation2, cssClass) {
+  processDeleteOperation(operation, cssClass) {
     const text = [];
     const paragraphMergeIndexes = [];
     let rawIndex = 0;
-    for (let pos = operation2.startInOld;pos < operation2.endInOld; pos++) {
+    for (let pos = operation.startInOld;pos < operation.endInOld; pos++) {
       const s = this.oldWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.oldIsolatedDiffTags[pos]) {
         text.push(...this.oldIsolatedDiffTags[pos]);
@@ -334,8 +334,8 @@ class HtmlDiff {
     this.justProcessedDeleteFromIndex = this.content.length;
     this.insertTag("del", cssClass, text);
   }
-  diffIsolatedPlaceholder(operation2, pos, placeholder, stripWrappingTags = true) {
-    const oldText = this.findIsolatedDiffTagsInOld(operation2, pos).join("");
+  diffIsolatedPlaceholder(operation, pos, placeholder, stripWrappingTags = true) {
+    const oldText = this.findIsolatedDiffTagsInOld(operation, pos).join("");
     const newText = this.newIsolatedDiffTags[pos].join("");
     if (this.isLinkPlaceholder(placeholder)) {
       return this.diffElementsByAttribute(oldText, newText, "href", "a");
@@ -375,12 +375,12 @@ class HtmlDiff {
     }
     return this.diffElements(oldText, newText);
   }
-  processEqualOperation(operation2) {
+  processEqualOperation(operation) {
     const result = [];
-    for (let pos = operation2.startInNew;pos < operation2.endInNew; pos++) {
+    for (let pos = operation.startInNew;pos < operation.endInNew; pos++) {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
-        result.push(this.diffIsolatedPlaceholder(operation2, pos, s));
+        result.push(this.diffIsolatedPlaceholder(operation, pos, s));
       } else if (s !== "\xB6") {
         result.push(s);
       }
@@ -433,9 +433,9 @@ class HtmlDiff {
     }
     return criteria.includes(text);
   }
-  findIsolatedDiffTagsInOld(operation2, posInNew) {
-    const offset = posInNew - operation2.startInNew;
-    return this.oldIsolatedDiffTags[operation2.startInOld + offset];
+  findIsolatedDiffTagsInOld(operation, posInNew) {
+    const offset = posInNew - operation.startInNew;
+    return this.oldIsolatedDiffTags[operation.startInOld + offset];
   }
   insertTag(tag, cssClass, words) {
     while (words.length > 0) {
