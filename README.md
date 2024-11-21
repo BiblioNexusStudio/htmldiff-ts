@@ -16,3 +16,7 @@ Install `bun` if you don't already have it.
 `npm install -g bun`
 
 Run `yarn build` before committing.
+
+## Releasing
+
+After merging a PR, manually create a GitHub release and increment the version number.
