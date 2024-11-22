@@ -110,7 +110,7 @@ class HtmlDiff {
   }
   convertHtmlToListOfWords(text) {
     const words = [];
-    text = text.replace("\xC2\xA0", " ");
+    text = text.replace("Â ", " ");
     text.match(/<.+?>|[^<]+/gmu)?.forEach((sentenceOrHtmlTag) => {
       if (sentenceOrHtmlTag === "") {
         return;
@@ -118,7 +118,7 @@ class HtmlDiff {
       if (sentenceOrHtmlTag[0] === "<") {
         if (sentenceOrHtmlTag === "</p>") {
           words.push(sentenceOrHtmlTag);
-          words.push("\xB6");
+          words.push("¶");
         } else {
           words.push(sentenceOrHtmlTag);
         }
@@ -143,10 +143,12 @@ class HtmlDiff {
     const sentenceLength = sentence.length;
     const firstCharacter = sentence[0];
     const lastCharacter = sentence[sentenceLength - 1];
-    if (firstCharacter === " " || firstCharacter === "\r" || firstCharacter === "\n") {
+    if (firstCharacter === " " || firstCharacter === "\r" || firstCharacter === `
+`) {
       sentence = " " + sentence.trimStart();
     }
-    if (sentenceLength > 1 && (lastCharacter === " " || lastCharacter === "\r" || lastCharacter === "\n")) {
+    if (sentenceLength > 1 && (lastCharacter === " " || lastCharacter === "\r" || lastCharacter === `
+`)) {
       sentence = sentence.trimEnd() + " ";
     }
     return sentence;
@@ -292,7 +294,7 @@ class HtmlDiff {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         text.push(...this.newIsolatedDiffTags[pos]);
-      } else if (s === "\xB6") {
+      } else if (s === "¶") {
         paragraphSplitIndexes.push(rawIndex);
         text.push(this.wrapText(s, "ins", cssClass));
       } else {
@@ -318,7 +320,7 @@ class HtmlDiff {
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.oldIsolatedDiffTags[pos]) {
         text.push(...this.oldIsolatedDiffTags[pos]);
       } else {
-        if (s === "\xB6") {
+        if (s === "¶") {
           paragraphMergeIndexes.push(rawIndex);
         }
         text.push(s);
@@ -381,7 +383,7 @@ class HtmlDiff {
       const s = this.newWords[pos];
       if (this.config.isIsolatedDiffTagPlaceholder(s) && this.newIsolatedDiffTags[pos]) {
         result.push(this.diffIsolatedPlaceholder(operation, pos, s));
-      } else if (s !== "\xB6") {
+      } else if (s !== "¶") {
         result.push(s);
       }
     }
